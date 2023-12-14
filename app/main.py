@@ -15,8 +15,8 @@ app = FastAPI(
     contact={
         "name": "ACM-SIST",
         "url": "https://example.com",
-        "email": "acm.sathyabama@gmail.com"
-    }
+        "email": "acm.sathyabama@gmail.com",
+    },
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -56,7 +56,11 @@ def is_trusted_domain(email: str) -> None:
 
 @app.post("/send_mail")
 def send_mail(data: MailP):
-    send([data.email_id], "Demo Subject Text", f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}")
+    send(
+        [data.email_id],
+        "Demo Subject Text",
+        f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
+    )
     return {"message": "Mail sent successfully"}
 
 
@@ -68,7 +72,9 @@ def send_mail(data: MailP):
             "description": "Successful Response",
             "content": {
                 "application/json": {
-                    "example": {'message': 'You\'ve successfully subscribed to our mailing list.'}
+                    "example": {
+                        "message": "You've successfully subscribed to our mailing list."
+                    }
                 }
             },
         },
@@ -77,17 +83,15 @@ def send_mail(data: MailP):
             "content": {
                 "application/json": {
                     "examples": {
-                        "invalid_email": {
-                            "value": "Invalid Email ID."
-                        },
+                        "invalid_email": {"value": "Invalid Email ID."},
                         "untrusted_domain": {
                             "value": f"Only {', '.join(TRUSTED_DOMAIN)} are accepted"
-                        }
+                        },
                     }
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 )
 def subscribe(email_id: str):
     """Adds the email to mailing list"""
@@ -95,18 +99,14 @@ def subscribe(email_id: str):
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         res = cur.execute(
-            "SELECT email_id from mailing_list WHERE email_id = ?",
-            (email_id,)
+            "SELECT email_id from mailing_list WHERE email_id = ?", (email_id,)
         )
         if res.fetchone():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Oops! It seems like your email address is already subscribed to our mailing list.",
             )
-        cur.execute(
-            "INSERT INTO mailing_list(email_id) VALUES (?)",
-            (email_id,)
-        )
+        cur.execute("INSERT INTO mailing_list(email_id) VALUES (?)", (email_id,))
         db.commit()
     return {"message": "You've successfully subscribed to our mailing list."}
 
@@ -117,11 +117,7 @@ def subscribe(email_id: str):
     responses={
         204: {
             "description": "Successful Response",
-            "content": {
-                "application/json": {
-                    "example": ""
-                }
-            },
+            "content": {"application/json": {"example": ""}},
         },
         404: {
             "description": "Not Found",
@@ -136,16 +132,14 @@ def subscribe(email_id: str):
             "content": {
                 "application/json": {
                     "examples": {
-                        "invalid_email": {
-                            "value": "Invalid Email ID."
-                        },
+                        "invalid_email": {"value": "Invalid Email ID."},
                         "untrusted_domain": {
                             "value": f"Only {', '.join(TRUSTED_DOMAIN)} are accepted"
-                        }
+                        },
                     }
                 }
-            }
-        }
+            },
+        },
     },
 )
 def unsubscribe(email_id: str):
@@ -155,20 +149,14 @@ def unsubscribe(email_id: str):
     is_trusted_domain(email_id)
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
-        cur.execute(
-            "SELECT email_id FROM mailing_list WHERE email_id = ?",
-            (email_id,)
-        )
+        cur.execute("SELECT email_id FROM mailing_list WHERE email_id = ?", (email_id,))
         res = cur.fetchone()
         if not res:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Oops! Your email address is not in our mailing list.",
             )
-        cur.execute(
-            "DELETE FROM mailing_list WHERE email_id = ?",
-            (email_id,)
-        )
+        cur.execute("DELETE FROM mailing_list WHERE email_id = ?", (email_id,))
 
 
 if __name__ == "__main__":
