@@ -3,14 +3,14 @@ from fastapi import APIRouter, status, Path, HTTPException, Depends
 from .. import schema, oauth2
 from utils.mail import send, TRUSTED_DOMAIN, is_trusted_domain, normalize
 
-router = APIRouter(
-    prefix="/mail",
-    tags=["Mail"]
-)
+router = APIRouter(prefix="/mail", tags=["Mail"])
 
 
 @router.post("/send_mail")
-def send_mail(data: schema.MailP, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def send_mail(
+    data: schema.MailP,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Sends a mail to the email id with subject and body
     """
@@ -24,7 +24,7 @@ def send_mail(data: schema.MailP, current_user: schema.TokenData = Depends(oauth
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 

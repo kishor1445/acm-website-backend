@@ -1,10 +1,7 @@
 import sqlite3
 from fastapi import APIRouter
 
-router = APIRouter(
-    prefix="/achievements",
-    tags=["Achievements"]
-)
+router = APIRouter(prefix="/achievements", tags=["Achievements"])
 
 
 @router.get("/")
@@ -20,5 +17,9 @@ def achievements():
         member_res = cur.fetchone()
         cur.execute("SELECT COUNT(*) FROM users;")
         participants_res = cur.fetchone()
-    _data = {"events": event_res[0], "members": member_res[0], "participants": participants_res[0]}
+    _data = {
+        "events": event_res[0],
+        "members": member_res[0],
+        "participants": participants_res[0],
+    }
     return {"data": _data}

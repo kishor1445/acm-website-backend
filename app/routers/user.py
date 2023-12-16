@@ -4,10 +4,7 @@ from .. import schema
 from utils.security import hash_
 from utils.mail import is_trusted_domain
 
-router = APIRouter(
-    prefix="/users",
-    tags=["Users"]
-)
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -23,9 +20,11 @@ def create_user(data: schema.UserCreate):
         try:
             cur.execute(
                 "INSERT INTO users VALUES(:email_id, :password, :admin, CURRENT_TIMESTAMP,:university, :department, :year)",
-                _data
+                _data,
             )
         except sqlite3.IntegrityError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User Already Exists.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="User Already Exists."
+            )
         db.commit()
     return {"message": "User Created."}

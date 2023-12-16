@@ -4,14 +4,14 @@ from fastapi import APIRouter, status, HTTPException, Depends
 from .. import schema, oauth2
 from utils.others import get_dict
 
-router = APIRouter(
-    prefix="/events",
-    tags=["Events"]
-)
+router = APIRouter(prefix="/events", tags=["Events"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_event(data: schema.EventCreate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def create_event(
+    data: schema.EventCreate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Make an event
     """
@@ -37,14 +37,15 @@ def create_event(data: schema.EventCreate, current_user: schema.TokenData = Depe
                 )
             except sqlite3.IntegrityError:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Event Already Exists."
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Event Already Exists.",
                 )
             db.commit()
         return {"message": "Event Created Successfully."}
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
@@ -89,7 +90,10 @@ def past_events():
 
 
 @router.patch("/")
-def update_event(data: schema.EventUpdate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def update_event(
+    data: schema.EventUpdate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Updates an event
     """
@@ -102,21 +106,27 @@ def update_event(data: schema.EventUpdate, current_user: schema.TokenData = Depe
         k = data.keys()
         with sqlite3.connect("acm.db") as db:
             cur = db.cursor()
-            old_data = cur.execute("SELECT name, start FROM events WHERE id = ?", (_id,))
+            old_data = cur.execute(
+                "SELECT name, start FROM events WHERE id = ?", (_id,)
+            )
             old_data = old_data.fetchone()
         if not old_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
             )
         if "name" in k and "start" in k:
-            data["id"] = data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
+            data["id"] = (
+                data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
+            )
         elif "name" in k:
             data["id"] = (
                 data["name"].replace(" ", "_").lower()
                 + f"_{datetime.strptime(old_data[1], '%Y-%m-%d %H:%M:%S').date()}"
             )
         elif "start" in k:
-            data["id"] = old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
+            data["id"] = (
+                old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
+            )
         with sqlite3.connect("acm.db") as db:
             cur = db.cursor()
             for k, v in data.items():
@@ -128,12 +138,15 @@ def update_event(data: schema.EventUpdate, current_user: schema.TokenData = Depe
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_event(data: schema.EventDelete, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def delete_event(
+    data: schema.EventDelete,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Deletes an event
     """
@@ -151,5 +164,5 @@ def delete_event(data: schema.EventDelete, current_user: schema.TokenData = Depe
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )

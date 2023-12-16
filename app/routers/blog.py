@@ -3,14 +3,14 @@ from fastapi import APIRouter, status, HTTPException, Depends
 from utils.others import get_dict
 from .. import schema, oauth2
 
-router = APIRouter(
-    prefix="/blogs",
-    tags=["Blogs"]
-)
+router = APIRouter(prefix="/blogs", tags=["Blogs"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_blog(data: schema.BlogCreate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def create_blog(
+    data: schema.BlogCreate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Creates a blog
     """
@@ -24,14 +24,15 @@ def create_blog(data: schema.BlogCreate, current_user: schema.TokenData = Depend
                 )
             except sqlite3.IntegrityError:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Title Already Exists"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Title Already Exists",
                 )
             db.commit()
         return {"message": "Blog Added."}
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
@@ -48,7 +49,10 @@ def blogs():
 
 
 @router.patch("/")
-def update_blog(data: schema.BlogUpdate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def update_blog(
+    data: schema.BlogUpdate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     if current_user.admin:
         title = data.title
         with sqlite3.connect("acm.db") as db:
@@ -73,12 +77,15 @@ def update_blog(data: schema.BlogUpdate, current_user: schema.TokenData = Depend
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_blog(data: schema.BlogDelete, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def delete_blog(
+    data: schema.BlogDelete,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Deletes the blog
     """
@@ -94,5 +101,5 @@ def delete_blog(data: schema.BlogDelete, current_user: schema.TokenData = Depend
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )

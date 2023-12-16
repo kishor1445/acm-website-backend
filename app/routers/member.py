@@ -3,14 +3,14 @@ from fastapi import APIRouter, status, HTTPException, Path, Depends
 from .. import schema, oauth2
 from utils.others import get_dict
 
-router = APIRouter(
-    prefix="/members",
-    tags=["Members"]
-)
+router = APIRouter(prefix="/members", tags=["Members"])
 
 
 @router.post("/")
-def create_member(data: schema.MemberCreate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def create_member(
+    data: schema.MemberCreate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     """
     Adds a members
     """
@@ -39,12 +39,15 @@ def create_member(data: schema.MemberCreate, current_user: schema.TokenData = De
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
 @router.patch("/")
-def update_member(data: schema.MemberUpdate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+def update_member(
+    data: schema.MemberUpdate,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     if current_user.admin:
         reg_no = data.reg_no
         with sqlite3.connect("acm.db") as db:
@@ -56,7 +59,9 @@ def update_member(data: schema.MemberUpdate, current_user: schema.TokenData = De
                 )
         _data = data.model_dump()
         _data["new_position"] = data.new_position.value if data.new_position else None
-        _data["new_department"] = data.new_department.value if data.new_department else None
+        _data["new_department"] = (
+            data.new_department.value if data.new_department else None
+        )
         _data["new_chapter"] = data.new_chapter.value if data.new_chapter else None
         _data = dict(filter(lambda x: x[1] is not None, _data.items()))
         _data.pop("reg_no")
@@ -72,12 +77,18 @@ def update_member(data: schema.MemberUpdate, current_user: schema.TokenData = De
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT,)
-def delete_member(data: schema.MemberDelete, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_member(
+    data: schema.MemberDelete,
+    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+):
     if current_user.admin:
         with sqlite3.connect("acm.db") as db:
             cur = db.cursor()
@@ -90,7 +101,7 @@ def delete_member(data: schema.MemberDelete, current_user: schema.TokenData = De
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action."
+            detail="You don't have permission to perform this action.",
         )
 
 
