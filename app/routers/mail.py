@@ -1,6 +1,6 @@
 import sqlite3
-from fastapi import APIRouter, status, Path, HTTPException
-from .. import schema
+from fastapi import APIRouter, status, Path, HTTPException, Depends
+from .. import schema, oauth2
 from utils.mail import send, TRUSTED_DOMAIN, is_trusted_domain, normalize
 
 router = APIRouter(
@@ -10,16 +10,22 @@ router = APIRouter(
 
 
 @router.post("/send_mail")
-def send_mail(data: schema.MailP):
+def send_mail(data: schema.MailP, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
     """
     Sends a mail to the email id with subject and body
     """
-    send(
-        [data.email_id],
-        "Demo Subject Text",
-        f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
-    )
-    return {"message": "Mail sent successfully"}
+    if current_user.admin:
+        send(
+            [data.email_id],
+            "Demo Subject Text",
+            f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
+        )
+        return {"message": "Mail sent successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
+        )
 
 
 @router.get(

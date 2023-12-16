@@ -15,32 +15,37 @@ def create_event(data: schema.EventCreate, current_user: schema.TokenData = Depe
     """
     Make an event
     """
-    print(current_user)
-    _id = data.name.replace(" ", "_").lower() + f"_{data.start.date()}"
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        try:
-            cur.execute(
-                """
-                        INSERT INTO events (id, name, description, venue, start, end, link)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                (
-                    _id,
-                    data.name,
-                    data.description,
-                    data.venue,
-                    data.start,
-                    data.end,
-                    data.link,
-                ),
-            )
-        except sqlite3.IntegrityError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Already Exists."
-            )
-        db.commit()
-    return {"message": "Event Created Successfully."}
+    if current_user.admin:
+        _id = data.name.replace(" ", "_").lower() + f"_{data.start.date()}"
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            try:
+                cur.execute(
+                    """
+                            INSERT INTO events (id, name, description, venue, start, end, link)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                    (
+                        _id,
+                        data.name,
+                        data.description,
+                        data.venue,
+                        data.start,
+                        data.end,
+                        data.link,
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Event Already Exists."
+                )
+            db.commit()
+        return {"message": "Event Created Successfully."}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
+        )
 
 
 @router.get("/")
@@ -84,55 +89,67 @@ def past_events():
 
 
 @router.patch("/")
-def update_event(data: schema.EventUpdate):
+def update_event(data: schema.EventUpdate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
     """
     Updates an event
     """
-    _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
-    data = dict(filter(lambda x: x[1] is not None, data.model_dump().items()))
-    data.pop("name")
-    data.pop("date")
-    data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), data.items()))
-    k = data.keys()
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        old_data = cur.execute("SELECT name, start FROM events WHERE id = ?", (_id,))
-        old_data = old_data.fetchone()
-    if not old_data:
+    if current_user.admin:
+        _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
+        data = dict(filter(lambda x: x[1] is not None, data.model_dump().items()))
+        data.pop("name")
+        data.pop("date")
+        data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), data.items()))
+        k = data.keys()
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            old_data = cur.execute("SELECT name, start FROM events WHERE id = ?", (_id,))
+            old_data = old_data.fetchone()
+        if not old_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
+            )
+        if "name" in k and "start" in k:
+            data["id"] = data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
+        elif "name" in k:
+            data["id"] = (
+                data["name"].replace(" ", "_").lower()
+                + f"_{datetime.strptime(old_data[1], '%Y-%m-%d %H:%M:%S').date()}"
+            )
+        elif "start" in k:
+            data["id"] = old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            for k, v in data.items():
+                cur.execute(f"UPDATE events SET {k} = ? WHERE id = ?", (v, _id))
+                if k == "id":
+                    _id = v
+            db.commit()
+        return {"message": "Updated Successfully."}
+    else:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
         )
-    if "name" in k and "start" in k:
-        data["id"] = data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
-    elif "name" in k:
-        data["id"] = (
-            data["name"].replace(" ", "_").lower()
-            + f"_{datetime.strptime(old_data[1], '%Y-%m-%d %H:%M:%S').date()}"
-        )
-    elif "start" in k:
-        data["id"] = old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        for k, v in data.items():
-            cur.execute(f"UPDATE events SET {k} = ? WHERE id = ?", (v, _id))
-            if k == "id":
-                _id = v
-        db.commit()
-    return {"message": "Updated Successfully."}
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_event(data: schema.EventDelete):
+def delete_event(data: schema.EventDelete, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
     """
     Deletes an event
     """
-    _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        cur.execute("SELECT * FROM events WHERE id = ?", (_id,))
-        if not cur.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found."
-            )
-        cur.execute("DELETE FROM events WHERE id = ?", (_id,))
-        db.commit()
+    if current_user.admin:
+        _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT * FROM events WHERE id = ?", (_id,))
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found."
+                )
+            cur.execute("DELETE FROM events WHERE id = ?", (_id,))
+            db.commit()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
+        )

@@ -1,6 +1,6 @@
 import sqlite3
-from fastapi import APIRouter, status, HTTPException, Path
-from .. import schema
+from fastapi import APIRouter, status, HTTPException, Path, Depends
+from .. import schema, oauth2
 from utils.others import get_dict
 
 router = APIRouter(
@@ -10,70 +10,88 @@ router = APIRouter(
 
 
 @router.post("/")
-def create_member(data: schema.MemberCreate):
+def create_member(data: schema.MemberCreate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
     """
     Adds a members
     """
-    _data = data.model_dump()
-    _data["position"] = data.position.value
-    _data["department"] = data.department.value
-    _data["chapter"] = data.chapter.value
-    try:
-        with sqlite3.connect("acm.db") as db:
-            cur = db.cursor()
-            cur.execute(
-                """
-                    INSERT INTO members 
-                        VALUES (:reg_no, :name, :position, :department, :season, :chapter,:pic_url, 
-                        :linkedin_tag, :twitter_tag, :instagram_tag, :facebook_tag)
-                    """,
-                _data,
+    if current_user.admin:
+        _data = data.model_dump()
+        _data["position"] = data.position.value
+        _data["department"] = data.department.value
+        _data["chapter"] = data.chapter.value
+        try:
+            with sqlite3.connect("acm.db") as db:
+                cur = db.cursor()
+                cur.execute(
+                    """
+                        INSERT INTO members 
+                            VALUES (:reg_no, :name, :position, :department, :season, :chapter,:pic_url, 
+                            :linkedin_tag, :twitter_tag, :instagram_tag, :facebook_tag)
+                        """,
+                    _data,
+                )
+                db.commit()
+        except sqlite3.IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Member already exists."
             )
-            db.commit()
-    except sqlite3.IntegrityError:
+        return {"message": "Member Added."}
+    else:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Member already exists."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
         )
-    return {"message": "Member Added."}
 
 
 @router.patch("/")
-def update_member(data: schema.MemberUpdate):
-    reg_no = data.reg_no
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        cur.execute("SELECT * FROM members WHERE reg_no = ?", (reg_no,))
-        if not cur.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Member Not Found"
-            )
-    _data = data.model_dump()
-    _data["new_position"] = data.new_position.value if data.new_position else None
-    _data["new_department"] = data.new_department.value if data.new_department else None
-    _data["new_chapter"] = data.new_chapter.value if data.new_chapter else None
-    _data = dict(filter(lambda x: x[1] is not None, _data.items()))
-    _data.pop("reg_no")
-    _data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), _data.items()))
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        for k, v in _data.items():
-            cur.execute(f"UPDATE members SET {k} = ? WHERE reg_no = ?", (v, reg_no))
-            if k == "reg_no":
-                reg_no = v
-        db.commit()
-    return {"message": "Updated Successfully"}
+def update_member(data: schema.MemberUpdate, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+    if current_user.admin:
+        reg_no = data.reg_no
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT * FROM members WHERE reg_no = ?", (reg_no,))
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Member Not Found"
+                )
+        _data = data.model_dump()
+        _data["new_position"] = data.new_position.value if data.new_position else None
+        _data["new_department"] = data.new_department.value if data.new_department else None
+        _data["new_chapter"] = data.new_chapter.value if data.new_chapter else None
+        _data = dict(filter(lambda x: x[1] is not None, _data.items()))
+        _data.pop("reg_no")
+        _data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), _data.items()))
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            for k, v in _data.items():
+                cur.execute(f"UPDATE members SET {k} = ? WHERE reg_no = ?", (v, reg_no))
+                if k == "reg_no":
+                    reg_no = v
+            db.commit()
+        return {"message": "Updated Successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
+        )
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_member(data: schema.MemberDelete):
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        cur.execute("SELECT * FROM members WHERE reg_no = ?", (data.reg_no,))
-        if not cur.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Member Not Found"
-            )
-        cur.execute("DELETE FROM members WHERE reg_no = ?", (data.reg_no,))
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT,)
+def delete_member(data: schema.MemberDelete, current_user: schema.TokenData = Depends(oauth2.get_current_user)):
+    if current_user.admin:
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT * FROM members WHERE reg_no = ?", (data.reg_no,))
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Member Not Found"
+                )
+            cur.execute("DELETE FROM members WHERE reg_no = ?", (data.reg_no,))
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action."
+        )
 
 
 @router.get("/department/{department}")
