@@ -1,19 +1,64 @@
 import sqlite3
 from datetime import datetime
+from typing import List
 from fastapi import APIRouter, status, HTTPException, Depends
 from .. import schema, oauth2
-from utils.others import get_dict
+from utils.others import get_dict, event_responses_200
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {
+            "description": "Successful Response",
+            "content": {
+                "application/json": {
+                    "example": {"message": "Event Created Successfully."}
+                }
+            },
+        },
+        400: {
+            "description": "Already Exists",
+            "content": {
+                "application/json": {"example": {"detail": "Event Already Exists."}}
+            },
+        },
+        401: {
+            "description": "Unauthorized Error",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "authorization_required": {
+                            "value": {"detail": "Not authenticated"}
+                        },
+                        "invalid_token": {
+                            "value": {"detail": "Could not validate credentials"}
+                        },
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Forbidden Error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "You don't have permission to perform this action."
+                    }
+                }
+            },
+        },
+    },
+)
 def create_event(
     data: schema.EventCreate,
     current_user: schema.TokenData = Depends(oauth2.get_current_user),
 ):
     """
-    Make an event
+    Makes an event
     """
     if current_user.admin:
         _id = data.name.replace(" ", "_").lower() + f"_{data.start.date()}"
@@ -49,7 +94,11 @@ def create_event(
         )
 
 
-@router.get("/")
+@router.get(
+    "/",
+    response_model=List[schema.EventOut],
+    responses=event_responses_200()
+)
 def events():
     """
     Retrieves all the events
@@ -61,7 +110,11 @@ def events():
     return {"events": get_dict(res, cur.description)}
 
 
-@router.get("/upcoming")
+@router.get(
+    "/upcoming",
+    response_model=List[schema.EventOut],
+    responses=event_responses_200()
+)
 def upcoming_events():
     """
     Retrieves all the upcoming events
@@ -75,7 +128,11 @@ def upcoming_events():
     return {"events": get_dict(res, cur.description)}
 
 
-@router.get("/past")
+@router.get(
+    "/past",
+    response_model=List[schema.EventOut],
+    responses=event_responses_200()
+)
 def past_events():
     """
     Retrieves all the past events

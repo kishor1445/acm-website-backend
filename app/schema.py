@@ -1,6 +1,6 @@
 from typing import Optional
 from enum import Enum
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 from datetime import datetime
 from datetime import date as _date
 
@@ -39,6 +39,10 @@ class EventCreate(BaseModel):
     start: datetime
     end: datetime
     link: str
+
+
+class EventOut(EventCreate):
+    id: str
 
 
 class EventUpdate(BaseModel):
@@ -118,7 +122,7 @@ class UserCreate(BaseModel):
     password: str
     university: str
     department: str
-    year: int
+    year: int = Field(..., ge=1, le=4)
 
 
 class UserLogin(BaseModel):
