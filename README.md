@@ -11,6 +11,9 @@ create a file called `.env` and set the below env variables
 MAIL_SERVER="smtp.gmail.com"
 MAIL_USER=Enter Your Username
 MAIL_PASS=Enter Your Password
+SECRET_KEY=Enter Your Secret Key
+JWT_ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
 **NOTE:** MAIL_PASS is not your gmail password instead it's an App Password. check out this [link](https://support.google.com/mail/answer/185833?hl=en)
 
