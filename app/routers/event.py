@@ -270,7 +270,7 @@ def register_event(
         email_body = f"""
         {current_user.name},
             You have registered for {res[1]}
-            
+            {'Transaction verification under progress' if not free else ''}
             Event Details:
                 Name: {res[1]}
                 {f'Description: {res[2]}' if res[2] is not None else ''}
@@ -279,6 +279,7 @@ def register_event(
                 Event Ends at {res[5]}
                 Registration Fee: {res[6] if not free else 'Free'}
                 Link to the event: {res[7]}
+                Transaction ID: {data.transaction_id if not free else 'N/A'}
         """
         send(
             [current_user.email_id],
