@@ -1,9 +1,10 @@
 import sqlite3
+import hashlib
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, status, HTTPException, Depends
 from .. import schema, oauth2
-from utils.others import get_dict, event_responses_200
+from utils.others import get_dict, event_responses_200, get_dict_one
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/events", tags=["Events"])
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
+    response_model=schema.EventOut,
     responses={
         201: {
             "description": "Successful Response",
@@ -55,50 +57,39 @@ router = APIRouter(prefix="/events", tags=["Events"])
 )
 def create_event(
     data: schema.EventCreate,
-    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
 ):
     """
     Makes an event
     """
-    if current_user.admin:
-        _id = data.name.replace(" ", "_").lower() + f"_{data.start.date()}"
-        with sqlite3.connect("acm.db") as db:
-            cur = db.cursor()
-            try:
-                cur.execute(
-                    """
-                            INSERT INTO events (id, name, description, venue, start, end, link)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
-                    (
-                        _id,
-                        data.name,
-                        data.description,
-                        data.venue,
-                        data.start,
-                        data.end,
-                        data.link,
-                    ),
-                )
-            except sqlite3.IntegrityError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Event Already Exists.",
-                )
-            db.commit()
-        return {"message": "Event Created Successfully."}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action.",
-        )
+    data = data.model_dump()
+    data["_id"] = data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        try:
+            cur.execute(
+                """
+                        INSERT INTO events (id, name, description, venue, start, end, fee, link)
+                        VALUES (:_id, :name, :description, :venue, :start, :end, :fee, :link)
+                    """,
+                data,
+            )
+        except sqlite3.IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Event Already Exists.",
+            )
+        cur.execute("SELECT * FROM events WHERE id = ?", (data["_id"],))
+        db.commit()
+    return get_dict_one(cur.fetchone(), cur.description)
+    # else:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="You don't have permission to perform this action.",
+    #     )
 
 
-@router.get(
-    "/",
-    response_model=List[schema.EventOut],
-    responses=event_responses_200()
-)
+@router.get("/", response_model=List[schema.EventOut], responses=event_responses_200())
 def events():
     """
     Retrieves all the events
@@ -107,13 +98,11 @@ def events():
         cur = db.cursor()
         cur.execute("SELECT * FROM events ORDER BY start;")
         res = cur.fetchall()
-    return {"events": get_dict(res, cur.description)}
+    return get_dict(res, cur.description)
 
 
 @router.get(
-    "/upcoming",
-    response_model=List[schema.EventOut],
-    responses=event_responses_200()
+    "/upcoming", response_model=List[schema.EventOut], responses=event_responses_200()
 )
 def upcoming_events():
     """
@@ -125,13 +114,11 @@ def upcoming_events():
             "SELECT * FROM events WHERE start > CURRENT_TIMESTAMP ORDER BY start;"
         )
         res = cur.fetchall()
-    return {"events": get_dict(res, cur.description)}
+    return get_dict(res, cur.description)
 
 
 @router.get(
-    "/past",
-    response_model=List[schema.EventOut],
-    responses=event_responses_200()
+    "/past", response_model=List[schema.EventOut], responses=event_responses_200()
 )
 def past_events():
     """
@@ -143,83 +130,159 @@ def past_events():
             "SELECT * FROM events WHERE start < CURRENT_TIMESTAMP ORDER BY start;"
         )
         res = cur.fetchall()
-    return {"events": get_dict(res, cur.description)}
+    return get_dict(res, cur.description)
 
 
-@router.patch("/")
+@router.patch("/", response_model=schema.EventOut)
 def update_event(
     data: schema.EventUpdate,
-    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
 ):
     """
     Updates an event
     """
-    if current_user.admin:
-        _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
-        data = dict(filter(lambda x: x[1] is not None, data.model_dump().items()))
-        data.pop("name")
-        data.pop("date")
-        data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), data.items()))
-        k = data.keys()
-        with sqlite3.connect("acm.db") as db:
-            cur = db.cursor()
-            old_data = cur.execute(
-                "SELECT name, start FROM events WHERE id = ?", (_id,)
-            )
-            old_data = old_data.fetchone()
-        if not old_data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
-            )
-        if "name" in k and "start" in k:
-            data["id"] = (
-                data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
-            )
-        elif "name" in k:
-            data["id"] = (
-                data["name"].replace(" ", "_").lower()
-                + f"_{datetime.strptime(old_data[1], '%Y-%m-%d %H:%M:%S').date()}"
-            )
-        elif "start" in k:
-            data["id"] = (
-                old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
-            )
-        with sqlite3.connect("acm.db") as db:
-            cur = db.cursor()
-            for k, v in data.items():
-                cur.execute(f"UPDATE events SET {k} = ? WHERE id = ?", (v, _id))
-                if k == "id":
-                    _id = v
-            db.commit()
-        return {"message": "Updated Successfully."}
-    else:
+    _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
+    data = dict(filter(lambda x: x[1] is not None, data.model_dump().items()))
+    data.pop("name")
+    data.pop("date")
+    data = dict(map(lambda x: (x[0].replace("new_", ""), x[1]), data.items()))
+    k = data.keys()
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        old_data = cur.execute("SELECT name, start FROM events WHERE id = ?", (_id,))
+        old_data = old_data.fetchone()
+    if not old_data:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action.",
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
         )
+    if "name" in k and "start" in k:
+        data["id"] = data["name"].replace(" ", "_").lower() + f"_{data['start'].date()}"
+    elif "name" in k:
+        data["id"] = (
+            data["name"].replace(" ", "_").lower()
+            + f"_{datetime.strptime(old_data[1], '%Y-%m-%d %H:%M:%S').date()}"
+        )
+    elif "start" in k:
+        data["id"] = old_data[0].replace(" ", "_").lower() + f"_{data['start'].date()}"
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        for k, v in data.items():
+            cur.execute(f"UPDATE events SET {k} = ? WHERE id = ?", (v, _id))
+            if k == "id":
+                _id = v
+        db.commit()
+        cur.execute("SELECT * FROM events WHERE id = ?", (_id,))
+    return get_dict_one(cur.fetchone(), cur.description)
+    # else:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="You don't have permission to perform this action.",
+    #     )
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_event(
     data: schema.EventDelete,
-    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
 ):
     """
     Deletes an event
     """
-    if current_user.admin:
-        _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
-        with sqlite3.connect("acm.db") as db:
-            cur = db.cursor()
-            cur.execute("SELECT * FROM events WHERE id = ?", (_id,))
-            if not cur.fetchone():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found."
-                )
-            cur.execute("DELETE FROM events WHERE id = ?", (_id,))
-            db.commit()
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action.",
+    _id = data.name.replace(" ", "_").lower() + f"_{data.date}"
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute("SELECT * FROM events WHERE id = ?", (_id,))
+        if not cur.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found."
+            )
+        cur.execute("DELETE FROM events WHERE id = ?", (_id,))
+        db.commit()
+    # else:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="You don't have permission to perform this action.",
+    #     )
+
+
+@router.post("/register", response_model=schema.EventRegisterOut)
+def register_event(
+    data: schema.EventRegister,
+    current_user: schema.UserOut = Depends(oauth2.get_current_user),
+):
+    _data = data.model_dump()
+    _data["user_id"] = current_user.reg_no
+    _data["status"] = data.status.value
+    _data["event_reg_id"] = f"{current_user.reg_no}#{hashlib.sha256(data.event_id.encode()).hexdigest()[:8]}{data.event_id.split('_')[-1].replace('-', '')}"
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute(
+            "SELECT fee FROM events WHERE id = ?",
+            (data.event_id,)
         )
+        res = cur.fetchone()
+        if not res:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Event Not Found"
+            )
+        if not data.transaction_id and res[0] > 0.0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "required": "transaction_id",
+                    "payment": res[0]
+                }
+            )
+        cur.execute(
+            "SELECT * FROM event_registrations WHERE event_reg_id = ?",
+            (_data["event_reg_id"],)
+        )
+        if cur.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Already Registered"
+            )
+        if data.transaction_id:
+            cur.execute("""
+                SELECT * FROM event_registrations WHERE transaction_id = ?
+            """, (data.transaction_id,))
+            if cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Repeated transaction_id"
+                )
+
+        cur.execute(
+            """
+            INSERT INTO event_registrations VALUES (
+                :event_reg_id, :user_id, :event_id, :transaction_id, :status
+            )""",
+            _data,
+        )
+        db.commit()
+        cur.execute(
+            "SELECT * FROM event_registrations WHERE event_reg_id = ?",
+            (_data["event_reg_id"],)
+        )
+    return get_dict_one(cur.fetchone(), cur.description)
+
+
+@router.get("/my_events", response_model=schema.MyEventOut)
+def my_events(current_user: schema.UserOut = Depends(oauth2.get_current_user)):
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute(
+            "SELECT * FROM event_registrations WHERE user_id = ?",
+            (current_user.reg_no,)
+        )
+        reg_event = get_dict(cur.fetchall(), cur.description)
+        print(reg_event)
+        event = []
+        for x in reg_event:
+            cur.execute(
+                "SELECT * FROM events WHERE id = ?",
+                (x["event_id"],)
+            )
+            event.append(get_dict_one(cur.fetchone(), cur.description))
+    return {"event": event, "reg_event": reg_event}

@@ -20,6 +20,7 @@ def create_tables():
                     venue TEXT NOT NULL,
                     start DATETIME NOT NULL,
                     end DATETIME NOT NULL,
+                    fee REAL NOT NULL,
                     link TEXT
                 )
             """
@@ -29,6 +30,8 @@ def create_tables():
                 CREATE TABLE IF NOT EXISTS members(
                     reg_no INT NOT NULL PRIMARY KEY,
                     name TEXT NOT NULL,
+                    email_id TEXT NOT NULL UNIQUE,
+                    password TEXT NOT NULL,
                     position TEXT NOT NULL,
                     department TEXT NOT NULL,
                     season INT,
@@ -37,7 +40,8 @@ def create_tables():
                     linkedin_tag TEXT,
                     twitter_tag TEXT,
                     instagram_tag TEXT,
-                    facebook_tag TEXT
+                    facebook_tag TEXT,
+                    joined_at DATETIME NOT NULL
                 )
             """
         )
@@ -56,14 +60,26 @@ def create_tables():
         cur.execute(
             """
                 CREATE TABLE IF NOT EXISTS users(
-                    email_id TEXT NOT NULL PRIMARY KEY,
+                    reg_no INT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email_id TEXT NOT NULL UNIQUE,
                     password TEXT NOT NULL,
-                    admin BOOLEAN NOT NULL,
-                    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    university TEXT NOT NULL,
                     department TEXT NOT NULL,
-                    year INT NOT NULL
+                    university TEXT NOT NULL,
+                    year INT NOT NULL,
+                    joined_at DATETIME NOT NULL
                 )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS event_registrations(
+                event_reg_id TEXT PRIMARY KEY,
+                user_id INT NOT NULL,
+                event_id TEXT NOT NULL,
+                transaction_id TEXT UNIQUE,
+                status TEXT NOT NULL
+            )
             """
         )
         db.commit()

@@ -1,15 +1,21 @@
 import sqlite3
-from fastapi import APIRouter, status, HTTPException
-from .. import schema
-from utils.security import hash_
+import pytz
+from datetime import datetime
+from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from .. import schema, oauth2
+from utils.security import hash_, check_pass, verify
 from utils.mail import is_trusted_domain, TRUSTED_DOMAIN
+from utils.others import get_dict_one
 
 router = APIRouter(prefix="/users", tags=["Users"])
+IST = pytz.timezone("Asia/Kolkata")
 
 
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
+    response_model=schema.UserOut,
     responses={
         201: {
             "description": "Successful Response",
@@ -34,18 +40,17 @@ router = APIRouter(prefix="/users", tags=["Users"])
     },
 )
 def create_user(data: schema.UserCreate):
-    email_id = is_trusted_domain(data.email_id)
-    data.email_id = email_id
-    hashed_pass = hash_(data.password)
-    data.password = hashed_pass
+    data.email_id = is_trusted_domain(data.email_id)
+    check_pass(data.password)
+    data.password = hash_(data.password)
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         _data = data.model_dump()
-        _data["admin"] = False
+        _data["joined_at"] = datetime.now(IST)
         try:
             cur.execute(
                 """INSERT INTO users VALUES(
-                            :email_id, :password, :admin, CURRENT_TIMESTAMP,:university, :department, :year
+                            :reg_no,:name,:email_id,:password,:department,:university,:year,:joined_at
                          )""",
                 _data,
             )
@@ -54,4 +59,34 @@ def create_user(data: schema.UserCreate):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="User Already Exists."
             )
         db.commit()
-    return {"message": "User Created."}
+        cur.execute("SELECT * FROM users WHERE reg_no = ?", (data.reg_no,))
+    return get_dict_one(cur.fetchone(), cur.description)
+
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(data: schema.UserDelete):
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute("SELECT * FROM users WHERE reg_no = ?", (data.reg_no,))
+        if not cur.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="User Not Found"
+            )
+        cur.execute("DELETE FROM users WHERE reg_no = ?", (data.reg_no,))
+
+
+@router.post("/login", response_model=schema.TokenData)
+def login(data: OAuth2PasswordRequestForm = Depends()):
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute(
+            "SELECT reg_no, password FROM users WHERE email_id = ?", (data.username,)
+        )
+        res = cur.fetchone()
+        if not res or not verify(data.password, res[1]):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials"
+            )
+        access_token = oauth2.create_access_token({"reg_no": res[0]})
+
+        return {"access_token": access_token, "token_type": "bearer"}

@@ -1,8 +1,13 @@
-from typing import Optional
 from enum import Enum
+from typing import List
 from pydantic import BaseModel, Field
 from datetime import datetime
 from datetime import date as _date
+
+
+class PaymentStatus(Enum):
+    Pending = "pending"
+    Verify = "verified"
 
 
 class ChapterType(Enum):
@@ -39,6 +44,7 @@ class EventCreate(BaseModel):
     start: datetime
     end: datetime
     link: str
+    fee: float
 
 
 class EventOut(EventCreate):
@@ -48,12 +54,13 @@ class EventOut(EventCreate):
 class EventUpdate(BaseModel):
     name: str
     date: _date
-    new_name: Optional[str] = None
-    new_description: Optional[str] = None
-    new_venue: Optional[str] = None
-    new_start: Optional[datetime] = None
-    new_end: Optional[datetime] = None
-    new_link: Optional[str] = None
+    new_name: str | None = None
+    new_description: str | None = None
+    new_venue: str | None = None
+    new_start: datetime | None = None
+    new_end: datetime | None = None
+    new_link: str | None = None
+    new_fee: float | None = None
 
 
 class EventDelete(BaseModel):
@@ -61,33 +68,64 @@ class EventDelete(BaseModel):
     date: _date
 
 
-class MemberCreate(BaseModel):
+class EventRegister(BaseModel):
+    event_id: str
+    transaction_id: str | None = None
+    status: PaymentStatus = PaymentStatus.Pending
+
+
+class EventRegisterOut(EventRegister):
+    event_reg_id: str
+    user_id: int
+
+
+class MyEventOut(BaseModel):
+    event: List[EventOut]
+    reg_event: List[EventRegisterOut]
+
+
+class Achievements(BaseModel):
+    members: int
+    participants: int
+    events: int
+
+
+class MemberBase(BaseModel):
     reg_no: int
     name: str
-    position: PositionType = "Member"
+    email_id: str
+    position: PositionType = PositionType.Member
     department: DepartmentType
     season: int
-    chapter: ChapterType = "ACM"
-    pic_url: str = None
-    linkedin_tag: Optional[str] = None
-    twitter_tag: Optional[str] = None
-    instagram_tag: Optional[str] = None
-    facebook_tag: Optional[str] = None
+    chapter: ChapterType = ChapterType.ACM
+    pic_url: str | None = None
+    linkedin_tag: str | None = None
+    twitter_tag: str | None = None
+    instagram_tag: str | None = None
+    facebook_tag: str | None = None
+
+
+class MemberCreate(MemberBase):
+    password: str
+
+
+class MemberOut(MemberBase):
+    joined_at: datetime
 
 
 class MemberUpdate(BaseModel):
     reg_no: int
-    new_reg_no: Optional[int] = None
-    new_name: Optional[str] = None
+    new_reg_no: int | None = None
+    new_name: str | None = None
     new_position: PositionType = None
     new_department: DepartmentType = None
-    new_season: Optional[int] = None
+    new_season: int | None = None
     new_chapter: ChapterType = None
-    new_pic_url: Optional[str] = None
-    new_linkedin_tag: Optional[str] = None
-    new_twitter_tag: Optional[str] = None
-    new_instagram_tag: Optional[str] = None
-    new_facebook_tag: Optional[str] = None
+    new_pic_url: str | None = None
+    new_linkedin_tag: str | None = None
+    new_twitter_tag: str | None = None
+    new_instagram_tag: str | None = None
+    new_facebook_tag: str | None = None
 
 
 class MemberDelete(BaseModel):
@@ -96,33 +134,50 @@ class MemberDelete(BaseModel):
 
 class BlogCreate(BaseModel):
     title: str
-    description: str = None
+    description: str | None = None
     date: _date
     author: str
-    image_url: str = None
+    image_url: str | None = None
     link: str
+
+
+class BlogOut(BlogCreate):
+    ...
 
 
 class BlogUpdate(BaseModel):
     title: str
-    new_title: Optional[str] = None
-    new_description: Optional[str] = None
-    new_date: Optional[_date] = None
-    new_author: Optional[str] = None
-    new_image_url: Optional[str] = None
-    new_link: Optional[str] = None
+    new_title: str | None = None
+    new_description: str | None = None
+    new_date: _date | None = None
+    new_author: str | None = None
+    new_image_url: str | None = None
+    new_link: str | None = None
 
 
 class BlogDelete(BaseModel):
     title: str
 
 
-class UserCreate(BaseModel):
+class UserBase(BaseModel):
+    reg_no: int
+    name: str
     email_id: str
-    password: str
-    university: str
     department: str
+    university: str
     year: int = Field(..., ge=1, le=4)
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserDelete(BaseModel):
+    reg_no: int
+
+
+class UserOut(UserBase):
+    joined_at: datetime
 
 
 class UserLogin(BaseModel):
@@ -130,11 +185,6 @@ class UserLogin(BaseModel):
     password: str
 
 
-class Token(BaseModel):
+class TokenData(BaseModel):
     access_token: str
     token_type: str
-
-
-class TokenData(BaseModel):
-    email_id: str
-    admin: bool

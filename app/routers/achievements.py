@@ -1,10 +1,11 @@
 import sqlite3
 from fastapi import APIRouter
+from .. import schema
 
 router = APIRouter(prefix="/achievements", tags=["Achievements"])
 
 
-@router.get("/")
+@router.get("/", response_model=schema.Achievements)
 def achievements():
     """
     Shows how many events have happened and how many members are/were in ACM and ACM-W SIST
@@ -22,4 +23,4 @@ def achievements():
         "members": member_res[0],
         "participants": participants_res[0],
     }
-    return {"data": _data}
+    return _data
