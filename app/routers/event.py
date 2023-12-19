@@ -15,14 +15,6 @@ router = APIRouter(prefix="/events", tags=["Events"])
     status_code=status.HTTP_201_CREATED,
     response_model=schema.EventOut,
     responses={
-        201: {
-            "description": "Successful Response",
-            "content": {
-                "application/json": {
-                    "example": {"message": "Event Created Successfully."}
-                }
-            },
-        },
         400: {
             "description": "Already Exists",
             "content": {
