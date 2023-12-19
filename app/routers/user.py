@@ -17,10 +17,6 @@ IST = pytz.timezone("Asia/Kolkata")
     status_code=status.HTTP_201_CREATED,
     response_model=schema.UserOut,
     responses={
-        201: {
-            "description": "Successful Response",
-            "content": {"application/json": {"example": {"message": "User Created."}}},
-        },
         400: {
             "description": "Bad Request",
             "content": {
@@ -64,7 +60,10 @@ def create_user(data: schema.UserCreate):
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(data: schema.UserDelete):
+def delete_user(
+    data: schema.UserDelete,
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
+):
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         cur.execute("SELECT * FROM users WHERE reg_no = ?", (data.reg_no,))

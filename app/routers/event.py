@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, status, HTTPException, Depends
 from .. import schema, oauth2
 from utils.others import get_dict, event_responses_200, get_dict_one
+from utils.mail import send
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -210,49 +211,47 @@ def register_event(
     data: schema.EventRegister,
     current_user: schema.UserOut = Depends(oauth2.get_current_user),
 ):
+    free = False
     _data = data.model_dump()
     _data["user_id"] = current_user.reg_no
-    _data["status"] = data.status.value
-    _data["event_reg_id"] = f"{current_user.reg_no}#{hashlib.sha256(data.event_id.encode()).hexdigest()[:8]}{data.event_id.split('_')[-1].replace('-', '')}"
+    _data[
+        "event_reg_id"
+    ] = f"{current_user.reg_no}#{hashlib.sha256(data.event_id.encode()).hexdigest()[:8]}{data.event_id.split('_')[-1].replace('-', '')}"
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
-        cur.execute(
-            "SELECT fee FROM events WHERE id = ?",
-            (data.event_id,)
-        )
+        cur.execute("SELECT fee FROM events WHERE id = ?", (data.event_id,))
         res = cur.fetchone()
         if not res:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Event Not Found"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
             )
-        if not data.transaction_id and res[0] > 0.0:
+        free = False if res[0] > 0.0 else True
+        if not data.transaction_id and not free:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "required": "transaction_id",
-                    "payment": res[0]
-                }
+                detail={"required": "transaction_id", "payment": res[0]},
             )
         cur.execute(
             "SELECT * FROM event_registrations WHERE event_reg_id = ?",
-            (_data["event_reg_id"],)
+            (_data["event_reg_id"],),
         )
         if cur.fetchone():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Already Registered"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Already Registered"
             )
         if data.transaction_id:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT * FROM event_registrations WHERE transaction_id = ?
-            """, (data.transaction_id,))
+            """,
+                (data.transaction_id,),
+            )
             if cur.fetchone():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Repeated transaction_id"
+                    detail="Repeated transaction_id",
                 )
-
+        _data["status"] = "pending" if not free else "verified"
         cur.execute(
             """
             INSERT INTO event_registrations VALUES (
@@ -263,9 +262,30 @@ def register_event(
         db.commit()
         cur.execute(
             "SELECT * FROM event_registrations WHERE event_reg_id = ?",
-            (_data["event_reg_id"],)
+            (_data["event_reg_id"],),
         )
-    return get_dict_one(cur.fetchone(), cur.description)
+        _data = get_dict_one(cur.fetchone(), cur.description)
+        cur.execute("SELECT * FROM events WHERE id = ?", (_data["event_id"],))
+        res = cur.fetchone()
+        email_body = f"""
+        {current_user.name},
+            You have registered for {res[1]}
+            
+            Event Details:
+                Name: {res[1]}
+                {f'Description: {res[2]}' if res[2] is not None else ''}
+                Venue: {res[3]}
+                Event Starts at {res[4]}
+                Event Ends at {res[5]}
+                Registration Fee: {res[6] if not free else 'Free'}
+                Link to the event: {res[7]}
+        """
+        send(
+            [current_user.email_id],
+            f"ACM: Event Registration {'Verification Under Progress' if not free else 'Successful'}",
+            email_body,
+        )
+    return _data
 
 
 @router.get("/my_events", response_model=schema.MyEventOut)
@@ -274,15 +294,12 @@ def my_events(current_user: schema.UserOut = Depends(oauth2.get_current_user)):
         cur = db.cursor()
         cur.execute(
             "SELECT * FROM event_registrations WHERE user_id = ?",
-            (current_user.reg_no,)
+            (current_user.reg_no,),
         )
         reg_event = get_dict(cur.fetchall(), cur.description)
         print(reg_event)
         event = []
         for x in reg_event:
-            cur.execute(
-                "SELECT * FROM events WHERE id = ?",
-                (x["event_id"],)
-            )
+            cur.execute("SELECT * FROM events WHERE id = ?", (x["event_id"],))
             event.append(get_dict_one(cur.fetchone(), cur.description))
     return {"event": event, "reg_event": reg_event}

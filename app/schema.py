@@ -71,12 +71,12 @@ class EventDelete(BaseModel):
 class EventRegister(BaseModel):
     event_id: str
     transaction_id: str | None = None
-    status: PaymentStatus = PaymentStatus.Pending
 
 
 class EventRegisterOut(EventRegister):
     event_reg_id: str
     user_id: int
+    status: PaymentStatus
 
 
 class MyEventOut(BaseModel):
