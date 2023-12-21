@@ -8,10 +8,11 @@ load_dotenv()
 create_tables()
 
 app = FastAPI(
-    title="ACM-SIST Backend API",
+    title="ACM-SIST API",
+    summary="Backend for the ACM-SIST club website",
     contact={
         "name": "ACM-SIST",
-        "url": "https://example.com",
+        "url": "https://example.com/contact",
         "email": "acm.sathyabama@gmail.com",
     },
 )
