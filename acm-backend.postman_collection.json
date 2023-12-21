@@ -1,0 +1,847 @@
+{
+	"info": {
+		"_postman_id": "6e70c514-3beb-4d94-a788-4ccd7fbc3048",
+		"name": "acm-backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30595267",
+		"_collection_link": "https://interstellar-resonance-255694.postman.co/workspace/acm~864f9d26-ba1e-4255-a755-aed9816d0d72/collection/30595267-6e70c514-3beb-4d94-a788-4ccd7fbc3048?action=share&source=collection_link&creator=30595267"
+	},
+	"item": [
+		{
+			"name": "User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reg_no\": 0,\n    \"name\": \"\",\n    \"email_id\": \"\",\n    \"password\": \"\",\n    \"department\": \"\",\n    \"university\": \"\",\n    \"year\": 0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/users",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reg_no\": 0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/users",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.environment.set(\"JWT_USER\", pm.response.json().access_token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "username",
+							"value": "",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{URL}}/users/login",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Member",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reg_no\": 0,\n    \"name\": \"\",\n    \"email_id\": \"\",\n    \"password\": \"\",\n    \"position\": \"OPTIONAL\",\n    \"department\": \"\",\n    \"season\": 0,\n    \"chapter\": \"OPTIONAL\",\n    \"pic_url\": \"OPTIONAL\",\n    \"linkedin_tag\": \"OPTIONAL\",\n    \"twitter_tag\": \"OPTIONAL\",\n    \"instagram_tag\": \"OPTIONAL\",\n    \"facebook_tag\": \"OPTIONAL\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/members",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Member Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.environment.set(\"JWT_MEMBER\", pm.response.json().access_token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "username",
+							"value": "",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{URL}}/members/login",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Department",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/department/technical_team",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"department",
+						"technical_team"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Dept + Season",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/department/technical_team/1",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"department",
+						"technical_team",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Position",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/position/vice-chair",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"position",
+						"vice-chair"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Position + Season",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/position/faculty/1",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"position",
+						"faculty",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Chapter",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/chapter/ACM-W",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"chapter",
+						"ACM-W"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Members By Chapter + Season",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/members/chapter/ACM/1",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members",
+						"chapter",
+						"ACM",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Member",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reg_no\": 0,\n    \"new_reg_no\": \"OPTIONAL\",\n    \"new_name\": \"OPTIONAL\",\n    \"new_position\": \"OPTIONAL\",\n    \"new_department\": \"OPTIONAL\",\n    \"new_season\": \"OPTIONAL\",\n    \"new_chapter\": \"OPTIONAL\",\n    \"new_pic_url\": \"OPTIONAL\",\n    \"new_linkedin_tag\": \"OPTIONAL\",\n    \"new_twitter_tag\": \"OPTIONAL\",\n    \"new_instagram_tag\": \"OPTIONAL\",\n    \"new_facebook_tag\": \"OPTIONAL\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/members",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Member",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reg_no\": 0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/members",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"members"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Event",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"\",\n  \"description\": \"\",\n  \"venue\": \"\",\n  \"start\": \"2024-01-01T08:00:00\",\n  \"end\": \"2024-01-01T18:00:00\",\n  \"link\": \"https://example.com\",\n  \"fee\": 0.00\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/events",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Events",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/events",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Upcoming Events",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/events/upcoming",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events",
+						"upcoming"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Past Events",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/events/past",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events",
+						"past"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Event",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"\",\n    \"date\": \"2024-01-01\",\n    \"new_name\": \"OPTIONAL\",\n    \"new_description\": \"OPTIONAL\",\n    \"new_venue\": \"OPTIONAL\",\n    \"new_start\": \"2024:01:01 OPTIONAL\",\n    \"new_end\": \"2024:01:01 OPTIONAL\",\n    \"new_link\": \"https://example.com OPTIONAL\",\n    \"new_fee\": 0.00\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/events/",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Event",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"\",\n    \"date\": \"2024-01-01\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/events",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register Event",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_USER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"event_id\": \"\",\n    \"transaction_id\": \"IF REQUIRED\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/events/register",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My Events",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_USER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/events/my_events",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"events",
+						"my_events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Achievements",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/achievements",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"achievements"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Blog",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"\",\n    \"description\": \"OPTIONAL\",\n    \"date\": \"2024-01-01\",\n    \"author\": \"\",\n    \"image_url\": \"OPTIONAL\",\n    \"link\": \"https://example.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/blogs",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"blogs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Blogs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/blogs",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"blogs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Blog",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"\",\n    \"new_title\": \"OPTIONAL\",\n    \"new_description\": \"OPTIONAL\",\n    \"new_date\": \"2024-01-01 OPTIONAL\",\n    \"new_author\": \"OPTIONAL\",\n    \"new_image_url\": \"OPTIONAL\",\n    \"new_link\": \"OPTIONAL\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/blogs",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"blogs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Blog",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/blogs",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"blogs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Send Mail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{JWT_MEMBER}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{   \n    \"email_id\": \"\",\n    \"reg_no\": \"\",\n    \"name\": \"\",\n    \"dep\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL}}/mail/send_mail",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"mail",
+						"send_mail"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Subscribe",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/mail/subscribe/example@gmail.com",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"mail",
+						"subscribe",
+						"example@gmail.com"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Unsubscribe",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{URL}}/mail/subscribe/example@gmail.com",
+					"host": [
+						"{{URL}}"
+					],
+					"path": [
+						"mail",
+						"subscribe",
+						"example@gmail.com"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
