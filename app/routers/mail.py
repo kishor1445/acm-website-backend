@@ -9,23 +9,17 @@ router = APIRouter(prefix="/mail", tags=["Mail"])
 @router.post("/send_mail")
 def send_mail(
     data: schema.MailP,
-    current_user: schema.TokenData = Depends(oauth2.get_current_user),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
 ):
     """
     Sends a mail to the email id with subject and body
     """
-    if current_user.admin:
-        send(
-            [data.email_id],
-            "Demo Subject Text",
-            f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
-        )
-        return {"message": "Mail sent successfully"}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to perform this action.",
-        )
+    send(
+        [data.email_id],
+        "Demo Subject Text",
+        f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
+    )
+    return {"message": "Mail sent successfully"}
 
 
 @router.get(

@@ -38,8 +38,10 @@ def verify_access_token(token: str, credentials_exceptions):
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         cur.execute("SELECT * FROM users WHERE reg_no = ?", (reg_no,))
-        _data = get_dict_one(cur.fetchone(), cur.description)
-    return schema.UserOut(**_data)
+        res = cur.fetchone()
+        if not res:
+            raise credentials_exceptions
+    return schema.UserOut(**get_dict_one(res, cur.description))
 
 
 def verify_member_access_token(token: str, credentials_exceptions):
