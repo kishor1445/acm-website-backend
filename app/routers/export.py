@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from .. import oauth2, schema
 
 
-router = APIRouter(prefix="/export")
+router = APIRouter(prefix="/export", tags=["export"])
 
 
 def get_csv_data(statement):
@@ -26,7 +26,8 @@ def export(
         ...,
         title="Database table name",
         description="Converts the given database table into csv file",
-    )
+    ),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_member)
 ):
     if table == schema.Tables.members:
         statement = "SELECT reg_no, name, email_id, position, department, season, chapter, pic_url, linkedin_tag, twitter_tag, instagram_tag, facebook_tag, joined_at FROM members"
