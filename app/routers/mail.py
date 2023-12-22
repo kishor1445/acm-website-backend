@@ -15,9 +15,9 @@ def send_mail(
     Sends a mail to the email id with subject and body
     """
     send(
-        [data.email_id],
-        "Demo Subject Text",
-        f"Reg no.: {data.reg_no}\nName: {data.name}\nDepartment: {data.dep}",
+        data.email_ids,
+        data.subject,
+        data.body,
     )
     return {"message": "Mail sent successfully"}
 
