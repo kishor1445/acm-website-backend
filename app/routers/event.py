@@ -29,9 +29,7 @@ router = APIRouter(prefix="/events", tags=["Events"])
                         "authorization_required": {
                             "value": {"detail": "Not authenticated"}
                         },
-                        "invalid_token": {
-                            "value": {"detail": "Could not validate credentials"}
-                        },
+                        "invalid_token": {"value": {"detail": "Invalid Token"}},
                     }
                 }
             },
@@ -198,11 +196,32 @@ def delete_event(
     #     )
 
 
-@router.post("/register", response_model=schema.EventRegisterOut)
+@router.post(
+    "/register",
+    response_model=schema.EventRegisterOut,
+    responses={
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "invalid event_id": {"value": {"detail": "Event Not Found"}},
+                        "transaction_id": {
+                            "value": {"required": "transaction_id", "payment": "amount"}
+                        },
+                    }
+                }
+            },
+        }
+    },
+)
 def register_event(
     data: schema.EventRegister,
     current_user: schema.UserOut = Depends(oauth2.get_current_user),
 ):
+    """
+    transaction_id only required if the event has registration fee
+    """
     free = False
     _data = data.model_dump()
     _data["user_id"] = current_user.reg_no
