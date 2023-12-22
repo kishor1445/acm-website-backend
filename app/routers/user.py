@@ -6,7 +6,7 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from .. import schema, oauth2
 from utils.security import hash_, check_pass, verify
 from utils.mail import is_trusted_domain, TRUSTED_DOMAIN
-from utils.others import get_dict_one
+from utils.others import get_dict_one, check_not_none
 
 router = APIRouter(prefix="/users", tags=["Users"])
 IST = pytz.timezone("Asia/Kolkata")
@@ -29,13 +29,25 @@ IST = pytz.timezone("Asia/Kolkata")
                             }
                         },
                         "already_exists": {"value": {"detail": "User Already Exists."}},
+                        "empty data": {
+                            "value": {"detail": "Required data cannot be empty"}
+                        },
+                        "invalid password format": {"value": {"detail": "message"}},
                     }
                 }
             },
-        },
+        }
     },
 )
 def create_user(data: schema.UserCreate):
+    """
+    Creates a regular user who can register for events and all...
+    """
+    if not check_not_none(data.model_dump(), []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required data cannot be empty",
+        )
     data.email_id = is_trusted_domain(data.email_id)
     check_pass(data.password)
     data.password = hash_(data.password)
@@ -59,11 +71,33 @@ def create_user(data: schema.UserCreate):
     return get_dict_one(cur.fetchone(), cur.description)
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        403: {
+            "description": "Forbidden Error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "You don't have permission to perform this action."
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized",
+            "content": {"application/json": {"example": {"detail": "Invalid Token"}}},
+        },
+    },
+)
 def delete_user(
     data: schema.UserDelete,
     current_member: schema.MemberOut = Depends(oauth2.get_current_user),
 ):
+    """
+    Deletes a regular user. It should respond with 204 for successful deletion with no content
+    """
     if current_member.reg_no == data.reg_no:
         with sqlite3.connect("acm.db") as db:
             cur = db.cursor()
@@ -80,8 +114,34 @@ def delete_user(
         )
 
 
-@router.post("/login", response_model=schema.TokenData)
+@router.post(
+    "/login",
+    response_model=schema.TokenData,
+    responses={
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "invalid login": {"value": {"detail": "Invalid Credentials"}},
+                        "empty data": {
+                            "value": {"detail": "Required data cannot be empty"}
+                        },
+                    }
+                }
+            },
+        }
+    },
+)
 def login(data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Login for regular users
+    """
+    if not check_not_none({"username": data.username, "password": data.password}, []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required data cannot be empty",
+        )
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         cur.execute(
