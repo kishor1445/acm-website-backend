@@ -64,14 +64,20 @@ def delete_user(
     data: schema.UserDelete,
     current_member: schema.MemberOut = Depends(oauth2.get_current_member),
 ):
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        cur.execute("SELECT * FROM users WHERE reg_no = ?", (data.reg_no,))
-        if not cur.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="User Not Found"
-            )
-        cur.execute("DELETE FROM users WHERE reg_no = ?", (data.reg_no,))
+    if current_member.reg_no == data.reg_no:
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT * FROM users WHERE reg_no = ?", (data.reg_no,))
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="User Not Found"
+                )
+            cur.execute("DELETE FROM users WHERE reg_no = ?", (data.reg_no,))
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to perform this action.",
+        )
 
 
 @router.post("/login", response_model=schema.TokenData)
