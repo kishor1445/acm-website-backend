@@ -62,7 +62,7 @@ def create_user(data: schema.UserCreate):
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     data: schema.UserDelete,
-    current_member: schema.MemberOut = Depends(oauth2.get_current_member),
+    current_member: schema.MemberOut = Depends(oauth2.get_current_user),
 ):
     if current_member.reg_no == data.reg_no:
         with sqlite3.connect("acm.db") as db:
