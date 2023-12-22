@@ -16,14 +16,14 @@ def verify(password: str, hashed_password: str):
 def check_pass(password: str):
     error_ = None
     if len(password) < 8:
-        error_ = "Password should be at least 8 characters."
+        error_ = "Password should be at least 8 characters"
     elif sum(1 for x in password if x in string.ascii_lowercase) < 1:
-        error_ = "Password should contain at least 1 lowercase character."
+        error_ = "Password should contain at least 1 lowercase character"
     elif sum(1 for x in password if x in string.ascii_uppercase) < 1:
-        error_ = "Password should contain at least 1 uppercase character."
+        error_ = "Password should contain at least 1 uppercase character"
     elif sum(1 for x in password if x in string.punctuation) < 1:
-        error_ = "Password should contain at least 1 special character."
+        error_ = "Password should contain at least 1 special character"
     elif sum(1 for x in password if x in string.digits) < 1:
-        error_ = "Password should contain at least 1 digit."
+        error_ = "Password should contain at least 1 digit"
     if error_:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_)
