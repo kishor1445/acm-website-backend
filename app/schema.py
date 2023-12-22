@@ -30,11 +30,19 @@ class PositionType(Enum):
     Member = "member"
 
 
+class Tables(Enum):
+    blogs = "blogs"
+    event_registrations = "event_registrations"
+    events = "events"
+    mailing_list = "mailing_list"
+    members = "members"
+    users = "users"
+
+
 class MailP(BaseModel):
-    email_id: str
-    name: str
-    reg_no: str
-    dep: str
+    email_ids: List[str]
+    subject: str
+    body: str
 
 
 class EventCreate(BaseModel):
