@@ -82,6 +82,11 @@ def update_member(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Member Not Found"
                 )
+        if data.new_email:
+            data.new_email = normalize(data.email_id)
+        if data.new_password:
+            check_pass(data.new_password)
+            data.new_password = hash_(data.new_password)
         _data = data.model_dump()
         _data["new_position"] = data.new_position.value if data.new_position else None
         _data["new_department"] = data.new_department.value if data.new_department else None

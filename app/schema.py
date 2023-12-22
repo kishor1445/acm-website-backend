@@ -117,6 +117,8 @@ class MemberUpdate(BaseModel):
     reg_no: int
     new_reg_no: int | None = None
     new_name: str | None = None
+    new_email: str | None = None
+    new_password: str | None = None
     new_position: PositionType = None
     new_department: DepartmentType = None
     new_season: int | None = None
