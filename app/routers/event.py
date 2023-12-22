@@ -290,7 +290,6 @@ def my_events(current_user: schema.UserOut = Depends(oauth2.get_current_user)):
             (current_user.reg_no,),
         )
         reg_event = get_dict(cur.fetchall(), cur.description)
-        print(reg_event)
         event = []
         for x in reg_event:
             cur.execute("SELECT * FROM events WHERE id = ?", (x["event_id"],))
