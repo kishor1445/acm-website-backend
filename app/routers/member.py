@@ -6,20 +6,41 @@ from fastapi import APIRouter, status, HTTPException, Path, Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from .. import schema, oauth2
 from utils.mail import normalize
-from utils.others import get_dict, get_dict_one
+from utils.others import get_dict, get_dict_one, check_not_none
 from utils.security import verify, hash_, check_pass
 
 router = APIRouter(prefix="/members", tags=["Members"])
 IST = pytz.timezone("Asia/Kolkata")
 
 
-@router.post("/", response_model=schema.MemberOut)
+@router.post(
+    "/",
+    response_model=schema.MemberOut,
+    responses={
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Required data cannot be empty"}
+                }
+            },
+        }
+    },
+)
 def create_member(
     data: schema.MemberCreate,
 ):
     """
     Adds a members
     """
+    if not check_not_none(
+        data.model_dump(),
+        ["pic_url", "linkedin_tag", "twitter_tag", "instagram_tag", "facebook_tag"],
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required data cannot be empty",
+        )
     data.email_id = normalize(data.email_id)
     check_pass(data.password)
     data.password = hash_(data.password)
@@ -52,8 +73,26 @@ def create_member(
     # )
 
 
-@router.post("/login", response_model=schema.TokenData)
+@router.post(
+    "/login",
+    response_model=schema.TokenData,
+    responses={
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Required data cannot be empty"}
+                }
+            },
+        }
+    },
+)
 def login_member(data: OAuth2PasswordRequestForm = Depends()):
+    if not check_not_none({"username": data.username, "password": data.password}, []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required data cannot be empty",
+        )
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         cur.execute(
@@ -89,7 +128,9 @@ def update_member(
             data.new_password = hash_(data.new_password)
         _data = data.model_dump()
         _data["new_position"] = data.new_position.value if data.new_position else None
-        _data["new_department"] = data.new_department.value if data.new_department else None
+        _data["new_department"] = (
+            data.new_department.value if data.new_department else None
+        )
         _data["new_chapter"] = data.new_chapter.value if data.new_chapter else None
         _data = dict(filter(lambda x: x[1] is not None, _data.items()))
         _data.pop("reg_no")
