@@ -1,8 +1,9 @@
 import sqlite3
 import hashlib
+import os
 from datetime import datetime
 from typing import List
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, Request, status, HTTPException, Depends
 from .. import schema, oauth2
 from utils.others import get_dict, event_responses_200, get_dict_one
 from utils.mail import send
@@ -216,88 +217,115 @@ def delete_event(
     },
 )
 def register_event(
+    request: Request,
     data: schema.EventRegister,
     current_user: schema.UserOut = Depends(oauth2.get_current_user),
 ):
     """
     transaction_id only required if the event has registration fee
     """
-    free = False
-    _data = data.model_dump()
-    _data["user_id"] = current_user.reg_no
-    _data[
-        "event_reg_id"
-    ] = f"{current_user.reg_no}#{hashlib.sha256(data.event_id.encode()).hexdigest()[:8]}{data.event_id.split('_')[-1].replace('-', '')}"
-    with sqlite3.connect("acm.db") as db:
-        cur = db.cursor()
-        cur.execute("SELECT fee FROM events WHERE id = ?", (data.event_id,))
-        res = cur.fetchone()
-        if not res:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
-            )
-        free = False if res[0] > 0.0 else True
-        if not data.transaction_id and not free:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"required": "transaction_id", "payment": res[0]},
-            )
-        cur.execute(
-            "SELECT * FROM event_registrations WHERE event_reg_id = ?",
-            (_data["event_reg_id"],),
-        )
-        if cur.fetchone():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Already Registered"
-            )
-        if data.transaction_id:
+    if current_user.verified:
+        free = False
+        _data = data.model_dump()
+        _data["user_id"] = current_user.reg_no
+        _data[
+            "event_reg_id"
+        ] = f"{current_user.reg_no}#{hashlib.sha256(data.event_id.encode()).hexdigest()[:8]}{data.event_id.split('_')[-1].replace('-', '')}"
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT fee FROM events WHERE id = ?", (data.event_id,))
+            res = cur.fetchone()
+            if not res:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Event Not Found"
+                )
+            free = False if res[0] > 0.0 else True
+            if not data.transaction_id and not free:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"required": "transaction_id", "payment": res[0]},
+                )
             cur.execute(
-                """
-                SELECT * FROM event_registrations WHERE transaction_id = ?
-            """,
-                (data.transaction_id,),
+                "SELECT * FROM event_registrations WHERE event_reg_id = ?",
+                (_data["event_reg_id"],),
             )
             if cur.fetchone():
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Repeated transaction_id",
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Already Registered"
                 )
-        _data["status"] = "pending" if not free else "verified"
-        cur.execute(
+            if data.transaction_id:
+                cur.execute(
+                    """
+                    SELECT * FROM event_registrations WHERE transaction_id = ?
+                """,
+                    (data.transaction_id,),
+                )
+                if cur.fetchone():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Repeated transaction_id",
+                    )
+            _data["status"] = "pending" if not free else "verified"
+            cur.execute(
+                """
+                INSERT INTO event_registrations VALUES (
+                    :event_reg_id, :user_id, :event_id, :transaction_id, :status
+                )""",
+                _data,
+            )
+            db.commit()
+            cur.execute(
+                "SELECT * FROM event_registrations WHERE event_reg_id = ?",
+                (_data["event_reg_id"],),
+            )
+            _data = get_dict_one(cur.fetchone(), cur.description)
+            cur.execute("SELECT * FROM events WHERE id = ?", (_data["event_id"],))
+            res = cur.fetchone()
+            start_datetime = datetime.strptime(res[4], "%Y-%m-%d %I:%M %p")
+            end_datetime = datetime.strptime(res[5], "%Y-%m-%d %I:%M %p")
+            event_date = (
+                start_datetime.strftime("%b %Y, %d %a")
+                if start_datetime.date() == end_datetime.date()
+                else f"{start_datetime.strftime('%b %Y, %d %a')} - {end_datetime.strftime('%b %Y, %d %a')}"
+            )
+            event_time = f"{start_datetime.strftime('%H:%M:%S')} - {end_datetime.strftime('%H:%M:%S')}"
+            email_body = f"""
+            <!DOCTYPE html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Event Registration</title>
+            </head>
+            <body style="font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background-color: #f8f8f8;">
+                    <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM-SIST Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;"></div>
+                    <h2 style="color: #333;">Event Registration</h2>
+                    <p>Greetings {current_user.name},</p>
+                    <p>Thank you for registering for the {res[1]}. We are thrilled to have you join us!</p>
+                    <p>{res[2] if res[2] and res[2].lower() != "none" else ''}</p>
+                    <p><strong>Event Details:</strong><br />
+                    <strong>Date:</strong> {event_date}<br />
+                    <strong>Time:</strong> {event_time}<br />
+                    <strong>Venue:</strong> {res[3]}<br />
+                    <strong>Link:</strong> {res[7]}<br />
+                    <strong>Registration Fee: {res[6] if not free else 'Free'}<br />
+                    {("<strong>Transaction ID:</strong> " + data.transaction_id + "</p>") if not free else '</p>'}
+                    {'<p>Your registration payment for this event is currently under review. We appreciate your participation and look forward to seeing you at the event!</p>' if not free else '<p>Your registration is successful and we look forward to seeing you at the event!</p>'}
+                    <p>If you have any questions or concerns, feel free to contact us at acm.sathyabama@gmail.com</p>
+
+                    <p>Best regards,<br />
+                    {os.getenv("ACM_SIST_CHAIR", "")},<br />
+                    Chair - ACM SIST.</p>
+                </div>
+            </body>
+            </html>
             """
-            INSERT INTO event_registrations VALUES (
-                :event_reg_id, :user_id, :event_id, :transaction_id, :status
-            )""",
-            _data,
-        )
-        db.commit()
-        cur.execute(
-            "SELECT * FROM event_registrations WHERE event_reg_id = ?",
-            (_data["event_reg_id"],),
-        )
-        _data = get_dict_one(cur.fetchone(), cur.description)
-        cur.execute("SELECT * FROM events WHERE id = ?", (_data["event_id"],))
-        res = cur.fetchone()
-        email_body = f"""
-        {current_user.name},
-            You have registered for {res[1]}
-            {'Transaction verification under progress' if not free else ''}
-            Event Details:
-                Name: {res[1]}
-                {f'Description: {res[2]}' if res[2] is not None else ''}
-                Venue: {res[3]}
-                Event Starts at {res[4]}
-                Event Ends at {res[5]}
-                Registration Fee: {res[6] if not free else 'Free'}
-                Link to the event: {res[7]}
-                Transaction ID: {data.transaction_id if not free else 'N/A'}
-        """
-        send(
-            [current_user.email_id],
-            f"ACM: Event Registration {'Verification Under Progress' if not free else 'Successful'}",
-            email_body,
-        )
-    return _data
+            send(
+                [current_user.email_id],
+                f"ACM-SIST: Event Registration {'Verification Under Progress' if not free else 'Successful'}",
+                email_body,
+            )
+        return _data
 
 
 @router.get("/my_events", response_model=schema.MyEventOut)
