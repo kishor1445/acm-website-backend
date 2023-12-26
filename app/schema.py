@@ -188,6 +188,7 @@ class UserDelete(BaseModel):
 
 class UserOut(UserBase):
     joined_at: datetime
+    verified: bool
 
 
 class UserLogin(BaseModel):

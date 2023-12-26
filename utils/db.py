@@ -67,7 +67,9 @@ def create_tables():
                     department TEXT NOT NULL,
                     university TEXT NOT NULL,
                     year INT NOT NULL,
-                    joined_at DATETIME NOT NULL
+                    joined_at DATETIME NOT NULL,
+                    verified BOOL NOT NULL,
+                    v_token TEXT NOT NULL
                 )
             """
         )
