@@ -127,10 +127,10 @@ class MemberUpdate(BaseModel):
     new_name: str | None = None
     new_email: str | None = None
     new_password: str | None = None
-    new_position: PositionType = None
-    new_department: DepartmentType = None
+    new_position: PositionType
+    new_department: DepartmentType
     new_season: int | None = None
-    new_chapter: ChapterType = None
+    new_chapter: ChapterType
     new_pic_url: str | None = None
     new_linkedin_tag: str | None = None
     new_twitter_tag: str | None = None
@@ -194,6 +194,16 @@ class UserOut(UserBase):
 class UserLogin(BaseModel):
     email_id: str
     password: str
+
+
+class PasswordReset(BaseModel):
+    reset_token: str
+    new_password: str = Field(min_length=8)
+    confirm_password: str = Field(min_length=8) 
+
+
+class EmailID(BaseModel):
+    email_id: str
 
 
 class TokenData(BaseModel):

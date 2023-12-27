@@ -12,19 +12,22 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 IST = pytz.timezone("Asia/Kolkata")
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     _data = data.copy()
-    expire = datetime.now(IST) + timedelta(
-        days=int(os.getenv("ACCESS_TOKEN_EXPIRE_DAYS"))
-    )
+    if expires_delta:
+        expire = datetime.now(IST) + expires_delta
+    else:
+        expire = datetime.now(IST) + timedelta(
+            days=int(os.getenv("ACCESS_TOKEN_EXPIRE_DAYS", "1"))
+        )
     _data.update({"exp": expire})
-    return jwt.encode(_data, os.getenv("SECRET_KEY"), os.getenv("JWT_ALGORITHM"))
+    return jwt.encode(_data, os.getenv("SECRET_KEY", ""), os.getenv("JWT_ALGORITHM", ""))
 
 
 def get_payload(token, credentials_exceptions):
     try:
         return jwt.decode(
-            token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("JWT_ALGORITHM")]
+            token, os.getenv("SECRET_KEY", ""), algorithms=[os.getenv("JWT_ALGORITHM", "")]
         )
     except JWTError:
         raise credentials_exceptions

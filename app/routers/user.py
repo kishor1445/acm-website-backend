@@ -2,13 +2,15 @@ import sqlite3
 import pytz
 import os
 import secrets
-from datetime import datetime
-from fastapi import APIRouter, Request, status, HTTPException, Depends
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+import time
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Request, status, HTTPException, Depends, Query
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm 
+from fastapi.responses import HTMLResponse
 from .. import schema, oauth2
 from utils.security import hash_, check_pass, verify
 from utils.mail import is_trusted_domain, TRUSTED_DOMAIN, send
-from utils.others import get_dict_one, check_not_none
+from utils.others import check_not_none
 
 router = APIRouter(prefix="/users", tags=["Users"])
 IST = pytz.timezone("Asia/Kolkata")
@@ -128,6 +130,112 @@ def verify_user(token: str):
             return {"message": "Account verified successfully"}
         else:
             return {"detail": "Invalid verification token"}
+
+
+@router.post("/forgot_password")
+def forgot_password(data: schema.EmailID, request: Request):
+    with sqlite3.connect("acm.db") as db:
+        cur = db.cursor()
+        cur.execute(
+            "SELECT * FROM users WHERE email_id = ?",
+            (data.email_id,)
+        )
+        res = cur.fetchone()
+        if res:
+            reset_token = oauth2.create_access_token({"reset_reg_no": res[0]}, timedelta(minutes=10))
+            reset_password_link = f"{request.url.scheme}://{request.url.hostname}/users/forgot_password/reset?token={reset_token}"
+            html_body = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Password Reset Request</title>
+            </head>
+            <body style="font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background-color: #f8f8f8;">
+                    <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
+                    <p>Hi {res[1]},</p>
+                    <p>We received a request to reset your password. If you made this request, please click the button below to reset your password:</p>
+                    <a href="{reset_password_link}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px; margin-top: 15px;">Reset Password</a>
+
+                    <div style="margin-top: 20px;">
+                        <p>If you did not request a password reset, you can ignore this email.</p>
+                        <p>Please not that the password reset like is valid only for 10 minutes for security reasons.</p>
+                    </div>
+
+                    <p>Best regards,<br>
+                    ACM-SIST</p>
+                </div>
+            </body>
+            </html>
+            """
+            send([data.email_id], "Password Reset Request", html_body)
+        else:
+            time.sleep(7)
+        return {
+            "message": "You will get an email with further instructions if your account found"
+        }
+
+
+@router.get("/forgot_password/reset")
+def reset_password_html(request: Request, token: str = Query(...)):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ACM-SIST Password Reset</title>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    </head>
+    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+        <div style="max-width: 400px; margin: 50px auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
+            <h2 style="text-align: center; color: #333;">Password Reset</h2>
+            <form id="resetForm" method="post" style="display: flex; flex-direction: column;">
+                <input type="hidden" id="reset_token" name="reset_token" value="{token}">
+                
+                <label for="new_password" style="margin-bottom: 8px;">New Password:</label>
+                <input style="padding: 8px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" type="password" id="new_password" name="new_password" required>
+                
+                <label for="confirm_password" style="margin-bottom: 8px;">Confirm Password:</label>
+                <input style="padding: 8px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" type="password" id="confirm_password" name="confirm_password" required>
+
+                <button type="button" onclick="resetPassword(event);" style="background-color: #4caf50; color: #fff; padding: 10px; border: none; border-radius: 4px; cursor: ponter; font-size: 16px;">Reset Password</button>
+            </form>
+        </div>
+        <script src="{request.url.scheme}://{request.url.hostname}/static/js/resetpassword.js"></script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
+@router.post("/forgot_password/reset")
+def reset_password(data: schema.PasswordReset):
+    reset_token_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Reset Token") 
+    token_data = oauth2.get_payload(data.reset_token, reset_token_exception)
+    reg_no = token_data["reset_reg_no"]
+    if reg_no:
+        if data.new_password != data.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password and Confirm password does not match!"
+            )
+        check_pass(data.new_password)
+        new_password = hash_(data.new_password)
+        with sqlite3.connect("acm.db") as db:
+            cur = db.cursor()
+            cur.execute(
+                "UPDATE users SET password = ? WHERE reg_no = ?",
+                (new_password, reg_no)
+            )
+            db.commit()
+        return {"message": "Password updated successfully"}
+    else:
+        raise reset_token_exception
+    
 
 
 @router.delete(
