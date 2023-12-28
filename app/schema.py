@@ -127,10 +127,10 @@ class MemberUpdate(BaseModel):
     new_name: str | None = None
     new_email: str | None = None
     new_password: str | None = None
-    new_position: PositionType
-    new_department: DepartmentType
+    new_position: PositionType | None = None
+    new_department: DepartmentType | None = None
     new_season: int | None = None
-    new_chapter: ChapterType
+    new_chapter: ChapterType | None = None
     new_pic_url: str | None = None
     new_linkedin_tag: str | None = None
     new_twitter_tag: str | None = None
