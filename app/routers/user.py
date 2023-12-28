@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, status, HTTPException, Depends, Query
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm 
 from fastapi.responses import HTMLResponse
-from .. import schema, oauth2
+from .. import schema, oauth2, config
 from utils.security import hash_, check_pass, verify
 from utils.mail import is_trusted_domain, TRUSTED_DOMAIN, send
 from utils.others import check_not_none
@@ -117,7 +117,7 @@ def create_user(data: schema.UserCreate, request: Request):
 
 
 @router.get("/verify/{token}")
-def verify_user(token: str):
+def verify_user(token: str, request: Request):
     with sqlite3.connect("acm.db") as db:
         cur = db.cursor()
         cur.execute("SELECT reg_no FROM users WHERE v_token = ?", (token,))
@@ -127,9 +127,9 @@ def verify_user(token: str):
                 "UPDATE users SET verified = 1, v_token = 'NaN' WHERE reg_no = ?",
                 (res[0],),
             )
-            return {"message": "Account verified successfully"}
+            return config.HTML_TEMPLATES.TemplateResponse("verify.html", {"request": request, "account_status": "Account Verification Successful", "status_mesage": "Your account has been successfully verified. You can now enjoy all the features!", "color": "#2196F3"})
         else:
-            return {"detail": "Invalid verification token"}
+            return config.HTML_TEMPLATES.TemplateResponse("verify.html", {"request": request, "account_status": "Account Verification Failed", "status_message": "We got an invalid/expired verification token and couldn't able to verify your account.", "color": "#FF5252"})
 
 
 @router.post("/forgot_password")
