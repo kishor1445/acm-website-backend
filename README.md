@@ -29,7 +29,7 @@ Required: <b>Python >= 3.10</b>
 ### Download Python
 Download From <a href="https://www.python.org">Python Official Website</a>
 
-#### CMD Installation of Python
+#### CLI Installation of Python
 ```bash
 # Arch Linux
 sudo pacman -S python
