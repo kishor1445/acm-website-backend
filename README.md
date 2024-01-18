@@ -26,16 +26,46 @@
 
 Required: <b>Python >= 3.10</b>
 
+### Download Python
+Download From <a href="https://www.python.org">Python Official Website</a>
+
+#### CMD Installation of Python
+```bash
+# Arch Linux
+sudo pacman -S python
+sudo pacman -S python-pip
+# If you are not using arch please refer your OS package manager to install 
+
+# Mac
+brew install python
+```
+
 ### Get the code
 ```bash
 git clone https://github.com/kishor1445/ACM_SIST_Backend.git
 cd ACM_SIST_Backend
 ```
 
+### Local Machine
+<b>NOTE</b>: If you are gonna run the server locally on your system then it is recommended to setup the virtual environment
+```bash
+# Create Virtual Environment
+python3.12 -m venv .venv
+
+# Activate Virtual Environment
+# Windows
+.\.venv\Scripts\activate
+
+# Linux/Mac
+source .venv/bin/activate
+```
+
 ### Install Requirements
 ```bash
 pip install -r requirements.txt
 ```
+If you get an error like command not found or pip is not a recognized command then try `pip3`. If you still get an error then it means pip is not installed or it is not added to PATH. Please search on the internet to fix that problem
+
 If you are testing/developing the server then install `requirements-dev.txt` as well
 
 ### Configuration
@@ -48,6 +78,7 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_DAYS=2
 ACM_SIST_CHAIR=<NAME>
 ```
+<b>NOTE</b>: <EMAIL_PASSWORD> is the App Password. Please refer this [link](https://support.google.com/accounts/answer/185833?hl=en) to create App Password
 
 ### Run the server
 ```bash
