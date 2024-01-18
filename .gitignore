@@ -1,0 +1,9 @@
+.pytest_cache/
+.venv/
+.DS_Store
+acm.db
+.env
+__pycache__
+payment_proof/*.jpg
+payment_proof/*.png
+payment_proof/*.jpeg
