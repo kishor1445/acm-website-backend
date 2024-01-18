@@ -6,7 +6,7 @@ from .db import db
 from . import config
 from .routers import users, members, events, payment_proof, blogs, achievements, mail, export
 
-app = FastAPI(title="ACM-SIST APIs", debug=True)  # TODO: Remove debug after development
+app = FastAPI(title="ACM-SIST APIs", version="2.0.0")
 
 
 db.create_table(config.db_engine)
