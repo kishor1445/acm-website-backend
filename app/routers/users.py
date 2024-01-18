@@ -223,7 +223,7 @@ def get_reset_password(request: Request, email: EmailStr, token: str):
     </head>
     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
         <div style="max-width: 400px; margin: 50px auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
+            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.png" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
             <h2 style="text-align: center; color: #333;">Password Reset</h2>
             <form id="resetForm" style="display: flex; flex-direction: column;">
                 <input type="hidden" id="reset_token" name="reset_token" value="{token}">
