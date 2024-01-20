@@ -1,5 +1,5 @@
 from pydantic import EmailStr
-from email_validator import validate_email
+from email_validator import validate_email, EmailUndeliverableError
 from fastapi import APIRouter, status, HTTPException, Depends
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
@@ -42,12 +42,18 @@ def subscribe(email: EmailStr, db: Session = Depends(get_db)):
     # Checks if the domain can get email
     email = validate_email(email, check_deliverability=True).normalized
     try:
+        email = validate_email(email, check_deliverability=True).normalized
         db.add(Mailing_List(email=email))
         db.commit()
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Looks like you've already subscribed to our mailing list",
+        )
+    except EmailUndeliverableError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Domain"
         )
     return {"msg": "You've successfully subscribed to our mailing list"}
 
