@@ -39,10 +39,8 @@ def subscribe(email: EmailStr, db: Session = Depends(get_db)):
     """
     Adds the email to mailing list
     """
-    # Checks if the domain can get email
-    email = validate_email(email, check_deliverability=True).normalized
     try:
-        email = validate_email(email, check_deliverability=True).normalized
+        email = validate_email(email, check_deliverability=True).normalized # Checks if the domain can get email
         db.add(Mailing_List(email=email))
         db.commit()
     except IntegrityError:
