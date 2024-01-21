@@ -47,7 +47,7 @@ def verification_mail(request, verify_link) -> str:
     </head>
     <body style="font-family: Arial, sans-serif;">
         <div style="max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background-color: #f8f8f8;">
-            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
+            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.png" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
             <h2 style="color: #333;">Account Verification</h2>
             <p>Welcome to the ACM-SIST | Sathyabama Institute of Science and Technology</h2>
             <p>We're excited to have you on board. To complete your registration and start enjoying the benefits of our ACM-SIST community, please click the button below to verify your account:</p>
@@ -77,7 +77,7 @@ def reset_password_mail(request, reset_password_link) -> str:
     </head>
     <body style="font-family: Arial, sans-serif;">
         <div style="max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background-color: #f8f8f8;">
-            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.svg" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
+            <div style="text-align: center;"><img src="{request.url.scheme}://{request.url.hostname}/static/logo.png" alt="ACM Logo" style="max-width: 100%; height: auto; margin-bottom: 20px;" /></div>
             <h2 style="color: #333;">Reset Password</h2>
             <p>Please click the below button to reset your password.</p>
             <p>If you didn't reuqest to reset your password please ignore this email.</p>
